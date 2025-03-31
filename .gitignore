@@ -6,7 +6,6 @@ yamls_run*/
 yamls_search_outputs/
 yamls_flat/
 
-save/
 data/shapenet_car/
 save/
 temp/
