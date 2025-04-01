@@ -9,8 +9,8 @@ matplotlib
 meshio
 pytest
 h5py
-torch-scatter -f https://data.pyg.org/whl/torch-2.5.1+cu124.html
-torch-cluster -f https://data.pyg.org/whl/torch-2.5.1+cu124.html
+torch_scatter -f https://data.pyg.org/whl/torch-2.5.1+cu124.html
+torch_cluster -f https://data.pyg.org/whl/torch-2.5.1+cu124.html
 kappabenchmark
 kappaconfig
 kappadata
