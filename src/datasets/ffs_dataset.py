@@ -15,22 +15,7 @@ from .base.dataset_base import DatasetBase
 
 class ffsDataset(DatasetBase):
     # generated with torch.randperm(889, generator=torch.Generator().manual_seed(0))[:189]
-    TEST_INDICES = {
-        550, 592, 229, 547, 62, 464, 798, 836, 5, 732, 876, 843, 367, 496,
-        142, 87, 88, 101, 303, 352, 517, 8, 462, 123, 348, 714, 384, 190,
-        505, 349, 174, 805, 156, 417, 764, 788, 645, 108, 829, 227, 555, 412,
-        854, 21, 55, 210, 188, 274, 646, 320, 4, 344, 525, 118, 385, 669,
-        113, 387, 222, 786, 515, 407, 14, 821, 239, 773, 474, 725, 620, 401,
-        546, 512, 837, 353, 537, 770, 41, 81, 664, 699, 373, 632, 411, 212,
-        678, 528, 120, 644, 500, 767, 790, 16, 316, 259, 134, 531, 479, 356,
-        641, 98, 294, 96, 318, 808, 663, 447, 445, 758, 656, 177, 734, 623,
-        216, 189, 133, 427, 745, 72, 257, 73, 341, 584, 346, 840, 182, 333,
-        218, 602, 99, 140, 809, 878, 658, 779, 65, 708, 84, 653, 542, 111,
-        129, 676, 163, 203, 250, 209, 11, 508, 671, 628, 112, 317, 114, 15,
-        723, 746, 765, 720, 828, 662, 665, 399, 162, 495, 135, 121, 181, 615,
-        518, 749, 155, 363, 195, 551, 650, 877, 116, 38, 338, 849, 334, 109,
-        580, 523, 631, 713, 607, 651, 168,
-    }
+    TEST_INDICES = []
 
     def __init__(
             self,
@@ -64,28 +49,24 @@ class ffsDataset(DatasetBase):
         else:
             self.grid_resolution = None
 
+
+        global_root, local_root = self._get_roots(global_root, local_root, "FFS")
+
+
         # define spatial min/max of simulation (for normalizing to [0, 1] and then scaling to [0, 200] for pos_embed)
-        # min: [-1.7978, -0.7189, -4.2762]
-        # max: [1.8168, 4.3014, 5.8759]
-        self.domain_min = torch.tensor([-2.0, -1.0, -4.5])
-        self.domain_max = torch.tensor([2.0, 4.5, 6.0])
+        normCoord = torch.load(global_root / 'preprocessed/coords_norm.th')
+        self.domain_min = normCoord['min_coords']
+        self.domain_max = normCoord['max_coords']
         self.scale = 200
         self.standardize_query_pos = standardize_query_pos
         self.concat_pos_to_sdf = concat_pos_to_sdf
 
-        # mean/std for normalization (calculated on the 700 train samples)
-        # import torch
-        # from datasets.shapenet_car import ShapenetCar
-        # ds = ShapenetCar(global_root="/local00/bioinf/shapenet_car", split="train")
-        # targets = [ds.getitem_pressure(i) for i in range(len(ds))]
-        # targets = torch.stack(targets)
-        # targets.mean()
-        # targets.std()
-        self.mean = torch.tensor(-36.3099)
-        self.std = torch.tensor(48.5743)
+        # mean/std for normalization (calculated on the train samples)
+        normVars = torch.load(global_root / 'preprocessed/vars_norm.th')
+        self.mean = normVars['mean']
+        self.std = normVars['std']
 
         # source_root
-        global_root, local_root = self._get_roots(global_root, local_root, "shapenet_car")
         if local_root is None:
             # load data from global_root
             self.source_root = global_root / "preprocessed"
@@ -109,31 +90,43 @@ class ffsDataset(DatasetBase):
         assert self.source_root.name == "preprocessed", f"'{self.source_root.as_posix()}' is not preprocessed folder"
 
         # discover uris
-        self.uris = []
-        for i in range(9):
-            param_uri = self.source_root / f"param{i}"
-            for name in sorted(os.listdir(param_uri)):
-                sample_uri = param_uri / name
-                if sample_uri.is_dir():
-                    self.uris.append(sample_uri)
-        assert len(self.uris) == 889, f"found {len(self.uris)} uris instead of 889"
+        uris = []
+        for name in sorted(os.listdir(self.source_root)):
+            sampleDir = self.source_root / name
+            if sampleDir.is_dir():
+                uris.append(sampleDir)
+                if int(name.split("_")[0].replace('DP', '')) > 100:
+                    self.TEST_INDICES.append(len(uris))
+        
         # split into train/test uris
         if split == "train":
-            train_idxs = [i for i in range(len(self.uris)) if i not in self.TEST_INDICES]
+            train_idxs = [i for i in range(len(self.uris)) if self.uris[i] not in self.TEST_INDICES]
             self.uris = [self.uris[train_idx] for train_idx in train_idxs]
-            assert len(self.uris) == 700
+            # assert len(self.uris) == 700
         elif split == "test":
             self.uris = [self.uris[test_idx] for test_idx in self.TEST_INDICES]
-            assert len(self.uris) == 189
+            assert len(self.uris) == 20
         else:
             raise NotImplementedError
 
     def __len__(self):
         return len(self.uris)
 
-    # noinspection PyUnusedLocal
-    def getitem_pressure(self, idx, ctx=None):
-        p = torch.load(self.uris[idx] / "pressure.th")
+    # get output variables
+    def getitem_u(self, idx, ctx=None):
+        u = torch.load(self.uris[idx] / "u.th")
+        u -= self.mean
+        u /= self.std
+        return u
+    
+    def getitem_v(self, idx, ctx=None):
+        v = torch.load(self.uris[idx] / "v.th")
+        v -= self.mean
+        v /= self.std
+        return v
+    
+    def getitem_p(self, idx, ctx=None):
+        p = torch.load(self.uris[idx] / "p.th")
         p -= self.mean
         p /= self.std
         return p
@@ -174,7 +167,7 @@ class ffsDataset(DatasetBase):
         # rescale for sincos positional embedding
         all_pos.sub_(self.domain_min).div_(self.domain_max - self.domain_min).mul_(self.scale)
         assert torch.all(0 < all_pos)
-        assert torch.all(all_pos < self.scale)
+        assert torch.all(all_pos < self.scale) #!!
         if ctx is not None:
             ctx["all_pos"] = all_pos
         return all_pos
