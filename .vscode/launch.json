@@ -10,7 +10,7 @@
             "console": "integratedTerminal",
             "cwd": "/workspace/UPT-DO/src",
             "args": [
-                //"--hp", "./yamls/ffs/test.yaml",
+                // "--hp", "./yamls/ffs/test.yaml",
                 "--hp", "./yamls/shapenetcar/upt/test.yaml",
                 "--devices", "0"
             ]

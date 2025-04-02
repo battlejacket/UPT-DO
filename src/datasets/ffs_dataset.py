@@ -50,7 +50,7 @@ class ffsDataset(DatasetBase):
             self.grid_resolution = None
 
 
-        global_root, local_root = self._get_roots(global_root, local_root, "ffs")
+        global_root, local_root = self._get_roots(global_root, local_root, "ffs_dataset")
 
 
         # define spatial min/max of simulation (for normalizing to [0, 1] and then scaling to [0, 200] for pos_embed)
