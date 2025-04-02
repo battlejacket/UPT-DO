@@ -26,7 +26,9 @@ class ffsCollator(KDSingleCollator):
 
         # dense_query_pos: batch_size * (num_points, ndim) -> (batch_size, max_num_points, ndim)
         # sparse target (decoder output is converted to sparse format before loss)
-        pressures = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="pressure") for sample in batch]
+        uVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="u") for sample in batch]
+        vVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="v") for sample in batch]
+        pressures = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="p") for sample in batch]
         # predict all positions -> pad
         query_pos = []
         query_lens = []
@@ -36,7 +38,10 @@ class ffsCollator(KDSingleCollator):
             query_lens.append(len(item))
             query_pos.append(item)
         collated_batch["query_pos"] = pad_sequence(query_pos, batch_first=True)
-        collated_batch["pressure"] = torch.concat(pressures).unsqueeze(1)
+        collated_batch["u"] = torch.concat(uVelocities).unsqueeze(1)
+        collated_batch["v"] = torch.concat(vVelocities).unsqueeze(1)
+        collated_batch["p"] = torch.concat(pressures).unsqueeze(1)
+        
         # create batch_idx tensor
         batch_size = len(mesh_lens)
         batch_idx = torch.empty(sum(mesh_lens), dtype=torch.long)
@@ -48,6 +53,7 @@ class ffsCollator(KDSingleCollator):
             start = end
             cur_batch_idx += 1
         ctx["batch_idx"] = batch_idx
+        
         # create query_batch_idx tensor (required for test loss)
         query_batch_idx = torch.empty(sum(query_lens), dtype=torch.long)
         start = 0
@@ -58,6 +64,7 @@ class ffsCollator(KDSingleCollator):
             start = end
             cur_query_batch_idx += 1
         ctx["query_batch_idx"] = query_batch_idx
+        
         # create unbatch_idx tensors (unbatch via torch_geometrics.utils.unbatch)
         # e.g. batch_size=2, num_points=[2, 3] -> unbatch_idx=[0, 0, 1, 2, 2, 2] unbatch_select=[0, 2]
         # then unbatching can be done via unbatch(dense, unbatch_idx)[unbatch_select]
