@@ -50,7 +50,7 @@ class ffsDataset(DatasetBase):
             self.grid_resolution = None
 
 
-        global_root, local_root = self._get_roots(global_root, local_root, "FFS")
+        global_root, local_root = self._get_roots(global_root, local_root, "ffs")
 
 
         # define spatial min/max of simulation (for normalizing to [0, 1] and then scaling to [0, 200] for pos_embed)
@@ -73,7 +73,7 @@ class ffsDataset(DatasetBase):
             self.logger.info(f"data_source (global): '{self.source_root}'")
         else:
             # load data from local_root
-            self.source_root = local_root / "shapenet_car"
+            self.source_root = local_root / "FFS"
             if is_data_rank0():
                 # copy data from global to local
                 self.logger.info(f"data_source (global): '{global_root}'")
@@ -90,13 +90,13 @@ class ffsDataset(DatasetBase):
         assert self.source_root.name == "preprocessed", f"'{self.source_root.as_posix()}' is not preprocessed folder"
 
         # discover uris
-        uris = []
+        self.uris = []
         for name in sorted(os.listdir(self.source_root)):
             sampleDir = self.source_root / name
             if sampleDir.is_dir():
-                uris.append(sampleDir)
+                self.uris.append(sampleDir)
                 if int(name.split("_")[0].replace('DP', '')) > 100:
-                    self.TEST_INDICES.append(len(uris))
+                    self.TEST_INDICES.append(len(self.uris))
         
         # split into train/test uris
         if split == "train":
@@ -105,7 +105,7 @@ class ffsDataset(DatasetBase):
             # assert len(self.uris) == 700
         elif split == "test":
             self.uris = [self.uris[test_idx] for test_idx in self.TEST_INDICES]
-            assert len(self.uris) == 20
+            # assert len(self.uris) == 20
         else:
             raise NotImplementedError
 
@@ -130,6 +130,21 @@ class ffsDataset(DatasetBase):
         p -= self.mean
         p /= self.std
         return p
+    
+    def getitem_target(self, idx, ctx=None):
+        u = self.getitem_u(idx, ctx)
+        v = self.getitem_v(idx, ctx)
+        p = self.getitem_p(idx, ctx)
+        t = [u, v, p]
+        target = torch.tensor(t)
+        return target
+    
+    def getitem_Re(self, idx, ctx=None):
+        self.uris
+        re = float(str(self.uris[idx]).split('/')[-1].split('-')[0].split('_')[-1])
+        re -= 550
+        re /= 260
+        return re
 
     def getitem_mesh_pos(self, idx, ctx=None):
         if ctx is not None and "mesh_pos" in ctx:
