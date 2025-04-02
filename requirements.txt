@@ -21,3 +21,4 @@ neuraloperator
 torch_geometric
 torch_harmonics # requirement for neuraloperator but not in dependency tree of neuraloperator
 wget
+open3d
