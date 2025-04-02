@@ -15,9 +15,9 @@ sbatch/
 scratchpad*
 qsub_config.yaml
 template_sbatch_gpus.sh
-sbatch_config.yaml
-static_config.yaml
-wandb_config*.yaml
+# sbatch_config.yaml
+# static_config.yaml
+# wandb_config*.yaml
 hyperparams*.yaml
 
 log*.txt
