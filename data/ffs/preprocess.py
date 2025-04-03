@@ -144,4 +144,4 @@ def main(src, dst, save_normalization_param=True):
 
 if __name__ == "__main__":
     # main(**parse_args())
-    main('./data/FFS/CSV_validation/', './data/FFS/preprocessed/', False)
+    main('./data/ffs/CSV/', './data/ffs/preprocessed/', True)

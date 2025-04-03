@@ -26,21 +26,23 @@ class ffsCollator(KDSingleCollator):
 
         # dense_query_pos: batch_size * (num_points, ndim) -> (batch_size, max_num_points, ndim)
         # sparse target (decoder output is converted to sparse format before loss)
-        uVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="u") for sample in batch]
-        vVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="v") for sample in batch]
-        pressures = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="p") for sample in batch]
+        # uVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="u") for sample in batch]
+        # vVelocities = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="v") for sample in batch]
+        # pressures = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="p") for sample in batch]
+        target = [ModeWrapper.get_item(mode=dataset_mode, batch=sample, item="target") for sample in batch]
         # predict all positions -> pad
         query_pos = []
         query_lens = []
         for i in range(len(batch)):
             item = ModeWrapper.get_item(mode=dataset_mode, batch=batch[i], item="query_pos")
-            assert len(item) == len(pressures[i])
+            assert len(item) == len(target[i])
             query_lens.append(len(item))
             query_pos.append(item)
         collated_batch["query_pos"] = pad_sequence(query_pos, batch_first=True)
-        collated_batch["u"] = torch.concat(uVelocities).unsqueeze(1)
-        collated_batch["v"] = torch.concat(vVelocities).unsqueeze(1)
-        collated_batch["p"] = torch.concat(pressures).unsqueeze(1)
+        # collated_batch["u"] = torch.concat(uVelocities).unsqueeze(1)
+        # collated_batch["v"] = torch.concat(vVelocities).unsqueeze(1)
+        # collated_batch["p"] = torch.concat(pressures).unsqueeze(1)
+        collated_batch["target"] = torch.concat(target).unsqueeze(1)
         
         # create batch_idx tensor
         batch_size = len(mesh_lens)

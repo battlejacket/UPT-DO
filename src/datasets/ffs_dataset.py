@@ -115,28 +115,27 @@ class ffsDataset(DatasetBase):
     # get output variables
     def getitem_u(self, idx, ctx=None):
         u = torch.load(self.uris[idx] / "u.th")
-        u -= self.mean
-        u /= self.std
+        u -= self.mean[0]
+        u /= self.std[0]
         return u
     
     def getitem_v(self, idx, ctx=None):
         v = torch.load(self.uris[idx] / "v.th")
-        v -= self.mean
-        v /= self.std
+        v -= self.mean[1]
+        v /= self.std[1]
         return v
     
     def getitem_p(self, idx, ctx=None):
         p = torch.load(self.uris[idx] / "p.th")
-        p -= self.mean
-        p /= self.std
+        p -= self.mean[2]
+        p /= self.std[2]
         return p
     
     def getitem_target(self, idx, ctx=None):
         u = self.getitem_u(idx, ctx)
         v = self.getitem_v(idx, ctx)
         p = self.getitem_p(idx, ctx)
-        t = [u, v, p]
-        target = torch.tensor(t)
+        target = torch.cat((u, v, p), dim=1)
         return target
     
     def getitem_Re(self, idx, ctx=None):
@@ -181,8 +180,8 @@ class ffsDataset(DatasetBase):
         all_pos = torch.load(self.uris[idx] / "mesh_points.th")
         # rescale for sincos positional embedding
         all_pos.sub_(self.domain_min).div_(self.domain_max - self.domain_min).mul_(self.scale)
-        assert torch.all(0 < all_pos)
-        assert torch.all(all_pos < self.scale) #!!
+        assert torch.all(0 <= all_pos)
+        assert torch.all(all_pos <= self.scale) #!!
         if ctx is not None:
             ctx["all_pos"] = all_pos
         return all_pos
