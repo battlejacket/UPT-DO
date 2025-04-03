@@ -21,6 +21,8 @@ def parse_args():
     parser.add_argument("--src", type=str, required=True, help="e.g. /data/shapenet_car/training_data")
     parser.add_argument("--dst", type=str, required=True, help="e.g. /data/shapenet_car/preprocessed")
     parser.add_argument("--saveNorm", type=bool, required=False, help="Set to False to avoid overwriting the normalization parameters")
+    parser.add_argument("--sampleRatio", type=bool, required=False, help="ratio of points to include")
+    parser.add_argument("--sampleSeed", type=bool, required=False, help="Seed for random sampling")
     return vars(parser.parse_args())
 
 
@@ -62,7 +64,7 @@ def sdf(mesh, resolution):
     # return torch.from_numpy(scene.compute_signed_distance(grid).numpy()).float()
 
 
-def main(src, dst, save_normalization_param=True):
+def main(src, dst, save_normalization_param=True, sampleRatio = None, sampleSeed = None):
     src = Path(src).expanduser()
     assert src.exists(), f"'{src.as_posix()}' doesnt exist"
     # assert src.name == "training_data"
@@ -104,6 +106,13 @@ def main(src, dst, save_normalization_param=True):
     sum_sq_vars = torch.tensor([0.0, 0.0, 0.0])  # For u^2, v^2, p^2
     total_samples = 0
 
+    if sampleRatio is not None:
+        if sampleSeed is not None:
+            # deterministically downsample
+            generator = torch.Generator().manual_seed(sampleSeed)
+        else:
+            generator = None
+
         
     for uri in tqdm(uris):
         reluri = uri.relative_to(src).with_suffix('')
@@ -113,7 +122,16 @@ def main(src, dst, save_normalization_param=True):
         #read and process csv
         csvData = csv_to_dict(uri, mapping=mapping, delimiter=",", skiprows=skiprows)
         
+        # get number of samples
+        full_len = len(csvData['x'])
+        end = int(full_len * sampleRatio)
+        # uniform sampling
+        perm = torch.randperm(full_len, generator=generator)[:end]
+        # mesh_pos = mesh_pos[perm]
+
+        
         for key in dictVarNames:
+            csvData[key] = csvData[key][perm]
             csvData[key] += scales[key][0]
             csvData[key] /= scales[key][1]
         NpMesh=np.concat([csvData["x"], csvData["y"]], axis=1)
@@ -121,7 +139,7 @@ def main(src, dst, save_normalization_param=True):
         min_coords = torch.min(min_coords, mesh_points.min(dim=0).values)
         max_coords = torch.max(max_coords, mesh_points.max(dim=0).values)
         torch.save(mesh_points, out / "mesh_points.th")        
-        
+        print(f"meshNr{len(mesh_points)}")
 
         for i, outVar in enumerate(dictOutvarNames):  # u, v, p
             data = torch.tensor(csvData[outVar]).float()
@@ -129,6 +147,7 @@ def main(src, dst, save_normalization_param=True):
             sum_vars[i] += data.sum()
             sum_sq_vars[i] += (data ** 2).sum()
             total_samples += data.numel()
+            print(f"{outVar} {data.numel()}")
 
     if save_normalization_param:
         # Calculate mean and std
@@ -144,4 +163,4 @@ def main(src, dst, save_normalization_param=True):
 
 if __name__ == "__main__":
     # main(**parse_args())
-    main('./data/ffs/CSV/', './data/ffs/preprocessed/', True)
+    main('./data/ffs/CSV/', './data/ffs/preprocessed/', True, 0.5, 1)
