@@ -124,7 +124,7 @@ def main(src, dst, save_normalization_param=True):
         
 
         for i, outVar in enumerate(dictOutvarNames):  # u, v, p
-            data = torch.tensor(csvData[outVar])
+            data = torch.tensor(csvData[outVar]).float()
             torch.save(data, out / f"{outVar}.th")
             sum_vars[i] += data.sum()
             sum_sq_vars[i] += (data ** 2).sum()

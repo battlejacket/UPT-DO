@@ -42,7 +42,7 @@ class ffsCollator(KDSingleCollator):
         # collated_batch["u"] = torch.concat(uVelocities).unsqueeze(1)
         # collated_batch["v"] = torch.concat(vVelocities).unsqueeze(1)
         # collated_batch["p"] = torch.concat(pressures).unsqueeze(1)
-        collated_batch["target"] = torch.concat(target).unsqueeze(1)
+        collated_batch["target"] = torch.concat(target)
         
         # create batch_idx tensor
         batch_size = len(mesh_lens)
