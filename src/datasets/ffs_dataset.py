@@ -95,17 +95,21 @@ class ffsDataset(DatasetBase):
             sampleDir = self.source_root / name
             if sampleDir.is_dir():
                 self.uris.append(sampleDir)
-                if int(name.split("_")[0].replace('DP', '')) > 100:
-                    self.TEST_INDICES.append(len(self.uris))
+                dp = int(name.split("_")[0].replace('DP', ''))
+                if dp > 100:
+                    self.TEST_INDICES.append(len(self.uris)-1)
         
         # split into train/test uris
         if split == "train":
-            train_idxs = [i for i in range(len(self.uris)) if self.uris[i] not in self.TEST_INDICES]
+            train_idxs = [i for i in range(len(self.uris)) if i not in self.TEST_INDICES]
             self.uris = [self.uris[train_idx] for train_idx in train_idxs]
+            print(f"train uris: {self.uris}")
             # assert len(self.uris) == 700
         elif split == "test":
             self.uris = [self.uris[test_idx] for test_idx in self.TEST_INDICES]
             # assert len(self.uris) == 20
+            print(f"test uris: {self.uris}")
+            
         else:
             raise NotImplementedError
 
