@@ -99,20 +99,22 @@ class RansPoolTransformerPerceiver(SingleModelBase):
             modifiers += [ExcludeFromWdByNameModifier(name="type_token")]
         return modifiers
 
-    def forward(self, mesh_pos, mesh_edges, batch_idx):
+    def forward(self, mesh_pos, mesh_edges, batch_idx, condition=None):
         # embed mesh
         x = self.mesh_embed(mesh_pos=mesh_pos, mesh_edges=mesh_edges, batch_idx=batch_idx)
 
         # apply blocks
+        block_kwargs = {}
+        if condition is not None:
+            block_kwargs["cond"] = condition
         x = self.enc_norm(x)
         x = self.enc_proj(x)
         for blk in self.blocks:
-            x = blk(x)
+            x = blk(x, **block_kwargs)
 
         # perceiver
         x = self.perc_proj(x)
-        x = self.perceiver(kv=x)
-
+        x = self.perceiver(kv=x, **block_kwargs)
         # add type token
         if self.add_type_token:
             x = x + self.type_token

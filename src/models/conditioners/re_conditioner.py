@@ -6,7 +6,7 @@ from torch import nn
 from models.base.single_model_base import SingleModelBase
 
 
-class reConditionerPdearena(SingleModelBase):
+class ReConditioner(SingleModelBase):
     def __init__(self, dim, cond_dim=None, init_weights="xavier_uniform", **kwargs):
         super().__init__(**kwargs)
         # self.num_total_timesteps = self.data_container.get_dataset().getdim_timestep()
