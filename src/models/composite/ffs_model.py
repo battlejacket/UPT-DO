@@ -9,6 +9,7 @@ class ffsModel(CompositeModelBase):
             encoder,
             latent,
             decoder,
+            conditioner=None,
             **kwargs,
     ):
         super().__init__(**kwargs)
@@ -19,6 +20,18 @@ class ffsModel(CompositeModelBase):
             static_ctx=self.static_ctx,
             data_container=self.data_container,
         )
+        # Re embed
+        self.conditioner = create(
+            conditioner,
+            model_from_kwargs,
+            **common_kwargs,
+            input_shape=self.input_shape,
+        )
+        # set static_ctx["dim"]
+        if self.conditioner is not None:
+            self.static_ctx["dim"] = self.conditioner.dim
+        else:
+            self.static_ctx["dim"] = latent["kwargs"]["dim"]
         # encoder
         self.encoder = create(
             encoder,
@@ -26,6 +39,7 @@ class ffsModel(CompositeModelBase):
             input_shape=self.input_shape,
             **common_kwargs,
         )
+        assert self.encoder.output_shape is not None
         # latent
         self.latent = create(
             latent,
@@ -45,23 +59,30 @@ class ffsModel(CompositeModelBase):
     @property
     def submodels(self):
         return dict(
+            **(dict(conditioner=self.conditioner) if self.conditioner is not None else {}),
             encoder=self.encoder,
             latent=self.latent,
             decoder=self.decoder,
         )
 
     # noinspection PyMethodOverriding
-    def forward(self, mesh_pos, query_pos, batch_idx, unbatch_idx, unbatch_select):
+    def forward(self, mesh_pos, Re, query_pos, batch_idx, unbatch_idx, unbatch_select):
         outputs = {}
 
+        # encode timestep t
+        if self.conditioner is not None:
+            condition = self.conditioner(Re=Re)
+        else:
+            condition = None  
+        
         # encode data
-        encoded = self.encoder(mesh_pos=mesh_pos, batch_idx=batch_idx)
+        encoded = self.encoder(mesh_pos=mesh_pos, batch_idx=batch_idx, condition=condition)
 
         # propagate
-        propagated = self.latent(encoded)
+        propagated = self.latent(encoded, condition=condition)
 
         # decode
-        x_hat = self.decoder(propagated, query_pos=query_pos, unbatch_idx=unbatch_idx, unbatch_select=unbatch_select)
+        x_hat = self.decoder(propagated, query_pos=query_pos, unbatch_idx=unbatch_idx, unbatch_select=unbatch_select, condition=condition)
         outputs["x_hat"] = x_hat
 
         return outputs
