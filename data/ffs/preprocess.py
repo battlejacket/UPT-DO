@@ -139,7 +139,6 @@ def main(src, dst, save_normalization_param=True, sampleRatio = None, sampleSeed
         min_coords = torch.min(min_coords, mesh_points.min(dim=0).values)
         max_coords = torch.max(max_coords, mesh_points.max(dim=0).values)
         torch.save(mesh_points, out / "mesh_points.th")        
-        print(f"meshNr{len(mesh_points)}")
 
         for i, outVar in enumerate(dictOutvarNames):  # u, v, p
             data = torch.tensor(csvData[outVar]).float()
@@ -147,7 +146,6 @@ def main(src, dst, save_normalization_param=True, sampleRatio = None, sampleSeed
             sum_vars[i] += data.sum()
             sum_sq_vars[i] += (data ** 2).sum()
             total_samples += data.numel()
-            print(f"{outVar} {data.numel()}")
 
     if save_normalization_param:
         # Calculate mean and std
@@ -163,4 +161,4 @@ def main(src, dst, save_normalization_param=True, sampleRatio = None, sampleSeed
 
 if __name__ == "__main__":
     # main(**parse_args())
-    main('./data/ffs/CSV/', './data/ffs/preprocessed/', True, 0.5, 1)
+    main('./data/ffs/CSV/', './data/ffs/preprocessed/', True, 0.1, 1)
