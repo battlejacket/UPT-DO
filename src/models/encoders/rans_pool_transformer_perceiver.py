@@ -115,6 +115,7 @@ class RansPoolTransformerPerceiver(SingleModelBase):
         # perceiver
         x = self.perc_proj(x)
         x = self.perceiver(kv=x, **block_kwargs)
+
         # add type token
         if self.add_type_token:
             x = x + self.type_token

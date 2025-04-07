@@ -39,7 +39,7 @@ class ffsTrainer(SgdTrainer):
 
     @cached_property
     def dataset_mode(self):
-        return "target mesh_pos query_pos"
+        return "target mesh_pos query_pos re"
 
     def get_trainer_model(self, model):
         return self.Model(model=model, trainer=self)
@@ -64,6 +64,7 @@ class ffsTrainer(SgdTrainer):
                 unbatch_idx=ctx["unbatch_idx"].to(self.model.device, non_blocking=True),
                 unbatch_select=ctx["unbatch_select"].to(self.model.device, non_blocking=True),
                 target=self.to_device(item="target", batch=batch),
+                re=self.to_device(item="re", batch=batch),
             )
 
         # from cfd

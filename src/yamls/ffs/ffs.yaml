@@ -31,10 +31,6 @@ datasets:
 
 model:
   kind: ffs_model
-  conditioner:
-    kind: conditioners.timestep_velocity_conditioner_pdearena
-    kwargs: ${select:dim128:${yaml:models/dim}}
-    optim: ${vars.optim}
   encoder:
     kind: encoders.rans_perceiver
     num_output_tokens: 64

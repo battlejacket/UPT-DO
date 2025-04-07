@@ -24,7 +24,7 @@ class CfdPerceiver(SingleModelBase):
         self.proj = LinearProjection(input_dim, dim)
 
         # query tokens (create them from a positional embedding)
-        self.pos_embed = ContinuousSincosEmbed(dim=dim, ndim=2)
+        self.pos_embed = ContinuousSincosEmbed(dim=dim, ndim=self.static_ctx["ndim"])
         self.query_mlp = nn.Sequential(
             LinearProjection(dim, dim * 4),
             nn.GELU(),

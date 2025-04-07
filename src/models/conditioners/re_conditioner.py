@@ -42,8 +42,8 @@ class ReConditioner(SingleModelBase):
         # checks + preprocess
         assert re.numel() == len(re)
         # timestep = timestep.flatten()
-        # re = re.view(-1, 1).float()
-        re = re.float()
+        re = re.view(-1, 1).float()
+        # re = re.float()
         # # for rollout timestep is simply initialized as 0 -> repeat to batch dimension
         # if timestep.numel() == 1:
         #     timestep = timestep.repeat(re.numel())

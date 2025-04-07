@@ -103,12 +103,10 @@ class ffsDataset(DatasetBase):
         if split == "train":
             train_idxs = [i for i in range(len(self.uris)) if i not in self.TEST_INDICES]
             self.uris = [self.uris[train_idx] for train_idx in train_idxs]
-            print(f"train uris: {self.uris}")
             # assert len(self.uris) == 700
         elif split == "test":
             self.uris = [self.uris[test_idx] for test_idx in self.TEST_INDICES]
             # assert len(self.uris) == 20
-            print(f"test uris: {self.uris}")
             
         else:
             raise NotImplementedError
@@ -142,9 +140,9 @@ class ffsDataset(DatasetBase):
         target = torch.cat((u, v, p), dim=1)
         return target
     
-    def getitem_Re(self, idx, ctx=None):
+    def getitem_re(self, idx, ctx=None):
         self.uris
-        re = float(str(self.uris[idx]).split('/')[-1].split('-')[0].split('_')[-1])
+        re = float(str(self.uris[idx]).split('/')[-1].split('-')[0].split('_')[-1].replace(',','.'))
         re -= 550
         re /= 260
         return re

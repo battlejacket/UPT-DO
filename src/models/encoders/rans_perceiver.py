@@ -1,9 +1,10 @@
 import einops
 import torch
 from kappamodules.layers import ContinuousSincosEmbed
-from kappamodules.transformer import PerceiverPoolingBlock, Mlp
+from kappamodules.transformer import PerceiverPoolingBlock, Mlp, DitPerceiverPoolingBlock
 from torch import nn
 from torch_geometric.utils import to_dense_batch
+from functools import partial
 
 from models.base.single_model_base import SingleModelBase
 from optimizers.param_group_modifiers.exclude_from_wd_by_name_modifier import ExcludeFromWdByNameModifier
@@ -35,14 +36,27 @@ class RansPerceiver(SingleModelBase):
 
         # perceiver
         self.mlp = Mlp(in_dim=dim, hidden_dim=dim * 4, init_weights=init_weights)
-        self.block = PerceiverPoolingBlock(
+        if "condition_dim" in self.static_ctx:
+            block_ctor = partial(
+                DitPerceiverPoolingBlock,
+                perceiver_kwargs=dict(
+                    cond_dim=self.static_ctx["condition_dim"],
+                    init_weights=init_weights,
+                    init_last_proj_zero=init_last_proj_zero,
+                ),
+            )
+        else:
+            block_ctor = partial(
+                PerceiverPoolingBlock,
+                perceiver_kwargs=dict(
+                    init_weights=init_weights,
+                    init_last_proj_zero=init_last_proj_zero,
+                ),
+            )
+        self.block = block_ctor(
             dim=dim,
             num_heads=num_attn_heads,
             num_query_tokens=num_output_tokens,
-            perceiver_kwargs=dict(
-                init_weights=init_weights,
-                init_last_proj_zero=init_last_proj_zero,
-            ),
         )
 
         if add_type_token:
@@ -63,7 +77,7 @@ class RansPerceiver(SingleModelBase):
             modifiers += [ExcludeFromWdByNameModifier(name="type_token")]
         return modifiers
 
-    def forward(self, mesh_pos, batch_idx, mesh_edges=None):
+    def forward(self, mesh_pos, batch_idx, mesh_edges=None, condition=None):
         x = self.pos_embed(mesh_pos)
         x, mask = to_dense_batch(x, batch_idx)
         if torch.all(mask):
@@ -72,9 +86,13 @@ class RansPerceiver(SingleModelBase):
             # add dimensions for num_heads and query (keys are masked)
             mask = einops.rearrange(mask, "batchsize num_nodes -> batchsize 1 1 num_nodes")
 
+        block_kwargs = {}
+        if condition is not None:
+            block_kwargs["cond"] = condition
+
         # perceiver
         x = self.mlp(x)
-        x = self.block(kv=x, attn_mask=mask)
+        x = self.block(kv=x, attn_mask=mask, **block_kwargs)
 
         if self.add_type_token:
             x = x + self.type_token

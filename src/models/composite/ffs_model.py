@@ -66,12 +66,12 @@ class ffsModel(CompositeModelBase):
         )
 
     # noinspection PyMethodOverriding
-    def forward(self, mesh_pos, Re, query_pos, batch_idx, unbatch_idx, unbatch_select):
+    def forward(self, mesh_pos, query_pos, batch_idx, unbatch_idx, unbatch_select, re):
         outputs = {}
 
         # encode timestep t
         if self.conditioner is not None:
-            condition = self.conditioner(Re=Re)
+            condition = self.conditioner(re=re)
         else:
             condition = None  
         

@@ -10,7 +10,7 @@ from torch_geometric.utils import unbatch
 from models.base.single_model_base import SingleModelBase
 
 
-class CfdPerceiverFss(SingleModelBase):
+class CfdPerceiver(SingleModelBase):
     def __init__(self, dim, num_attn_heads, init_weights="xavier_uniform", **kwargs):
         super().__init__(**kwargs)
         self.dim = dim
@@ -24,7 +24,7 @@ class CfdPerceiverFss(SingleModelBase):
         self.proj = LinearProjection(input_dim, dim)
 
         # query tokens (create them from a positional embedding)
-        self.pos_embed = ContinuousSincosEmbed(dim=dim, ndim=self.static_ctx["ndim"])
+        self.pos_embed = ContinuousSincosEmbed(dim=dim, ndim=2)
         self.query_mlp = nn.Sequential(
             LinearProjection(dim, dim * 4),
             nn.GELU(),
